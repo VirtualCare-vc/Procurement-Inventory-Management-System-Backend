@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+  USER
+}
+
+model Supplier {
+  id             Int             @id @default(autoincrement())
+  name           String
+  contact        String?
+  email          String?
+  address        String?
+  createdAt      DateTime        @default(now())
+  purchaseOrders PurchaseOrder[] // 👈 reverse relation added
+}
+
+model Product {
+  id          Int              @id @default(autoincrement())
+  sku         String           @unique
+  name        String
+  description String?
+  unitPrice   Float
+  createdAt   DateTime         @default(now())
+  variants    ProductVariant[]
+}
+
+model ProductVariant {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  barcode    String?  @unique
+  attributes Json? // e.g., { "color": "red", "size": "L" }
+  qtyOnHand  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  product   Product            @relation(fields: [productId], references: [id])
+  StockTxns StockTransaction[]
+  poLines   POLine[] // 👈 reverse relation added
+}
+
+model PurchaseOrder {
+  id           Int      @id @default(autoincrement())
+  poNumber     String   @unique
+  supplierId   Int
+  status       POStatus @default(DRAFT)
+  totalAmount  Float    @default(0)
+  createdById  Int
+  approvedById Int?
+  createdAt    DateTime @default(now())
+
+  lines    POLine[]
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+}
+
+enum POStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  RECEIVED
+  CLOSED
+  CANCELLED
+}
+
+model POLine {
+  id            Int            @id @default(autoincrement())
+  poId          Int
+  variantId     Int
+  quantity      Int
+  unitPrice     Float
+  lineTotal     Float
+  purchaseOrder PurchaseOrder  @relation(fields: [poId], references: [id])
+  variant       ProductVariant @relation(fields: [variantId], references: [id])
+}
+
+model StockTransaction {
+  id          Int      @id @default(autoincrement())
+  variantId   Int
+  change      Int // +ve for in, -ve for out
+  type        String // "PO_RECEIVE", "ADJUSTMENT", "SALE", etc.
+  referenceId Int? // e.g., poId or invoiceId
+  createdById Int
+  createdAt   DateTime @default(now())
+
+  variant ProductVariant @relation(fields: [variantId], references: [id])
+}
