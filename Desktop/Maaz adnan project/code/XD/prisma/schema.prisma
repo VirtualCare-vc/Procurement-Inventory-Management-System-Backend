@@ -1,0 +1,163 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model Tenant {
+  id          String      @id @default(cuid())
+  name        String
+  code        String       @unique
+  description String?
+  companies   Company[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  isActive    Boolean      @default(true)
+}
+
+model Company {
+  id          String       @id @default(cuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  name        String
+  code        String       @unique
+  description String?
+  sites       Site[]
+  users       User[]
+  numberingRules NumberingRule[]
+  chartOfAccounts ChartOfAccount[]
+  currencies  Currency[]
+  uoms        UoM[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  isActive    Boolean      @default(true)
+}
+
+model Site {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  name        String
+  code        String    @unique
+  address     String?
+  city        String?
+  country     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  isActive    Boolean   @default(true)
+}
+
+model NumberingRule {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  module      String    // e.g., "SalesOrder", "PurchaseOrder"
+  prefix      String?
+  suffix      String?
+  nextNumber  Int        @default(1)
+  padding     Int        @default(5)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model ChartOfAccount {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  name        String
+  code        String    @unique
+  parentId    String?   // Hierarchical chart structure
+  parent      ChartOfAccount? @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children    ChartOfAccount[] @relation("AccountHierarchy")
+  taxRate     Decimal?  @db.Decimal(5, 2)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  isActive    Boolean   @default(true)
+}
+
+model Currency {
+  id              String        @id @default(cuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id])
+  code            String        @unique
+  name            String
+  baseRates       ExchangeRate[] @relation("BaseCurrency")
+  targetRates     ExchangeRate[] @relation("TargetCurrency")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model ExchangeRate {
+  id              String     @id @default(cuid())
+  baseCurrencyId  String
+  targetCurrencyId String
+  rate            Decimal    @db.Decimal(10, 4)
+  effectiveDate   DateTime
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  baseCurrency    Currency   @relation("BaseCurrency", fields: [baseCurrencyId], references: [id])
+  targetCurrency  Currency   @relation("TargetCurrency", fields: [targetCurrencyId], references: [id])
+}
+
+model User {
+  id          String     @id @default(cuid())
+  companyId   String
+  company     Company    @relation(fields: [companyId], references: [id])
+  email       String     @unique
+  password    String
+  fullName    String
+  roleId      String?
+  role        Role?      @relation(fields: [roleId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  isActive    Boolean    @default(true)
+}
+
+model Role {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  permissions Permission[]  @relation("RolePermissions")
+  users       User[]
+}
+
+model Permission {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  module      String?
+  action      String?   // e.g., read/write/delete
+  roles       Role[]    @relation("RolePermissions")
+}
+
+model UoM {
+  id            String          @id @default(cuid())
+  companyId     String
+  company       Company         @relation(fields: [companyId], references: [id])
+  name          String
+  symbol        String
+  fromConversions UoMConversion[] @relation("FromUoM")
+  toConversions   UoMConversion[] @relation("ToUoM")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model UoMConversion {
+  id             String   @id @default(cuid())
+  fromUomId      String
+  toUomId        String
+  conversionRate Decimal  @db.Decimal(10, 4)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  fromUom        UoM      @relation("FromUoM", fields: [fromUomId], references: [id])
+  toUom          UoM      @relation("ToUoM", fields: [toUomId], references: [id])
+}
