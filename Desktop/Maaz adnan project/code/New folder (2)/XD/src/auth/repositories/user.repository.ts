@@ -1,6 +1,6 @@
 // src/auth/repositories/user.repository.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 
 @Injectable()
@@ -35,4 +35,26 @@ export class UserRepository {
       where: { name: tenantName },
     });
   }
+
+
+
+ async updateMe(userId: string, data: { fullName?: string; password?: string }) {
+    const updateData: any = {};
+    if (data.fullName) updateData.fullName = data.fullName;
+    if (data.password) updateData.password = data.password; // already hashed
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+  }
+
+
+  async getCompanyById (id: string) {
+    return this.prisma.company.findUnique({
+      where: { id },
+    });
+  }
+
+
 }
