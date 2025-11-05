@@ -56,3 +56,29 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+
+
+# Node modules directory
+node_modules/
+
+# Distribution folder
+dist/
+
+# Log files
+*.log
+
+# OS files (example for Windows)
+Thumbs.db
+Desktop.ini
+
+# Other unwanted files or folders
+.cache/
+.config/
+.gitconfig
+.idea/
+.vscode/
+
+# Other files you don't want to track
+*.exe
+*.bak
+*.tmp
